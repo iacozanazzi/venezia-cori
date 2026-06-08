@@ -274,6 +274,77 @@
   align-items: flex-start;
 }
 
+/* ── Gestione cori (admin): aggiungi / filtri / ricerca ── */
+.add-chant {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green-bright);
+  border-radius: var(--r-card);
+  padding: 12px 16px;
+}
+.add-chant.open { padding-bottom: 16px; }
+.add-chant-toggle {
+  background: none; border: none; cursor: pointer;
+  color: var(--green-bright);
+  font-family: 'Archivo', sans-serif; font-size: 0.8rem; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 0;
+}
+.add-chant-form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.add-chant-form label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.add-chant-form input, .add-chant-form textarea, .add-chant-form select {
+  background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: var(--r-card);
+  color: var(--text); font-family: 'Archivo', sans-serif; font-size: 0.92rem;
+  font-weight: 400; letter-spacing: 0; text-transform: none; padding: 9px 11px; outline: none;
+}
+.add-chant-form textarea { resize: vertical; line-height: 1.55; white-space: pre-wrap; }
+.add-chant-form input:focus, .add-chant-form textarea:focus, .add-chant-form select:focus {
+  border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft);
+}
+.add-chant-form option { background: #1a1a18; }
+.add-chant-form .btn-approve { align-self: flex-start; border-radius: var(--r-ctrl); padding: 9px 16px; cursor: pointer; }
+
+.manage-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.seg-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg-btn {
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-ctrl);
+  color: var(--text-dim); font-family: 'Archivo', sans-serif; font-size: 0.74rem; font-weight: 800;
+  letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px; transition: all 0.2s var(--ease);
+}
+.seg-btn:hover { border-color: var(--orange); color: var(--text); }
+.seg-btn.active { background: var(--orange); border-color: var(--orange); color: #120a02; }
+.seg-count { background: rgba(0,0,0,0.22); border-radius: 10px; padding: 1px 7px; font-size: 0.7rem; }
+.seg-btn:not(.active) .seg-count { background: var(--bg-2); color: var(--orange); }
+.manage-search {
+  flex: 1; min-width: 180px;
+  background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: var(--r-card);
+  color: var(--text); font-family: 'Archivo', sans-serif; font-size: 0.9rem; padding: 9px 12px; outline: none;
+}
+.manage-search:focus { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft); }
+
+/* card coro in gestione */
+.manage-card .mr-media-wrap { border-top: 1px solid var(--border); padding-top: 10px; }
+.manage-card .mr-media-label { display: block; font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+.manage-card .mr-media li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.manage-card .me-plat {
+  background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: var(--r-card);
+  color: var(--text); font-family: 'Archivo', sans-serif; font-size: 0.82rem; padding: 6px 8px; outline: none;
+}
+.manage-card .me-plat option { background: #1a1a18; }
+.manage-card .me-url {
+  flex: 1; min-width: 160px;
+  background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: var(--r-card);
+  color: var(--text); font-family: 'Archivo', sans-serif; font-size: 0.82rem; padding: 6px 8px; outline: none;
+}
+.link-save { background: none; border: none; color: var(--green-bright); font-size: 0.72rem; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }
+.link-save:hover { opacity: 0.75; }
+.btn-hide { background: var(--surface-2) !important; }
+.btn-hide:hover { border-color: var(--gold) !important; color: var(--gold) !important; }
+
 @media (max-width: 640px) {
   .mod-card, .merch-edit { flex-direction: column; }
   .mod-actions { width: 100%; flex-direction: row; }

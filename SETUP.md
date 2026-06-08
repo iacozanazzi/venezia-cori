@@ -93,7 +93,32 @@ La pagina [`privacy.html`](privacy.html) è una **bozza-modello**: apri il file 
 
 ---
 
-## 9. (Opzionale) Anti-spam più forte — Cloudflare Turnstile
+## 9. Pannello admin — gestione completa dei contenuti
+
+Per sbloccare la gestione avanzata (modifica/aggiunta/nascondi cori, recupero rifiutati,
+azzeramento popolarità) esegui **una volta** la migrazione:
+
+1. Supabase → **SQL Editor** → **New query**
+2. Apri [`db/migration-admin.sql`](db/migration-admin.sql), copia tutto, incolla, **Run**
+   (aggiunge lo stato `nascosto`, abilita l'inserimento cori da admin e azzera i punteggi base)
+
+Poi, nella tab **Gestione** di `/admin.html` puoi:
+
+- **Aggiungi coro** → form in cima: crea un coro già pubblicato (con video opzionale).
+- **Modifica** → su ogni coro correggi titolo, testo, categoria, avversario e **Punteggio base**, poi **Salva**.
+- **Nascondi / Ripubblica** → metti un coro offline senza cancellarlo, e rimettilo quando vuoi.
+- **Elimina** → rimuove il coro (e i suoi video/voti). Chiede sempre conferma.
+- **Filtri** `Pubblicati / Nascosti / Rifiutati` + **ricerca** per trovare velocemente un coro.
+- **Rifiutati** → dal filtro omonimo puoi **Ripubblicare** una proposta scartata o **eliminarla** del tutto.
+- **Video** → su ogni coro: aggiungi, elimina, modifica url/piattaforma, o segna "in evidenza".
+
+> **Popolarità:** il numero mostrato sul sito = *punteggio base* + *voti degli utenti*. Dopo la
+> migrazione il punteggio base parte da 0 per tutti (classifica veritiera); puoi rialzarlo a mano
+> dall'admin per dare risalto a un coro.
+
+---
+
+## 10. (Opzionale) Anti-spam più forte — Cloudflare Turnstile
 
 I form hanno già un **honeypot** (campo trappola invisibile) e tutto passa per moderazione,
 quindi nulla finisce pubblico senza il tuo ok. Se vuoi alzare l'asticella:
@@ -113,5 +138,5 @@ quindi nulla finisce pubblico senza il tuo ok. Se vuoi alzare l'asticella:
 
 - **Proposte cori** → tab "Proposte cori": correggi se serve, poi **Pubblica** → appare sul sito.
 - **Proposte video** → tab "Proposte video": **Approva + mostra** → il bottone media compare sulla card.
-- **Gestione** → tab "Gestione": su ogni coro pubblicato puoi togliere/aggiungere video,
-  metterli "in evidenza" (cioè mostrarli sul sito), o eliminare.
+- **Gestione** → tab "Gestione": crea/modifica/nascondi/elimina cori, gestisci i video e
+  recupera le proposte rifiutate (vedi sezione 9).

@@ -194,55 +194,225 @@ function wireMediaCard(m) {
   });
 }
 
-/* ── Gestione (tutti i cori pubblicati + media) ─────────────────── */
+/* ── Gestione (crea / modifica / nascondi / elimina cori + video) ── */
+let manageChants = [];
+let manageState  = { seg: 'pubblicato', q: '' };
+let addChantOpen = false;
+
+const SEG = [
+  { key: 'pubblicato', label: 'Pubblicati' },
+  { key: 'nascosto',   label: 'Nascosti'   },
+  { key: 'rifiutato',  label: 'Rifiutati'  }
+];
+function segLabel(k) { return (SEG.find(s => s.key === k) || { label: k }).label; }
+function catOptions(sel)  { return CATS.map(k => `<option value="${k}"${k === sel ? ' selected' : ''}>${k}</option>`).join(''); }
+function platOptions(sel) { return Object.entries(PLAT).map(([v, l]) => `<option value="${v}"${v === sel ? ' selected' : ''}>${l}</option>`).join(''); }
+
 async function loadManage() {
   const panel = document.getElementById('panel-manage');
+  if (!panel) return;
   panel.innerHTML = '<p class="muted">Carico…</p>';
   try {
-    const rows = (await A.allChants()).filter(c => c.stato === 'pubblicato');
-    if (!rows.length) { panel.innerHTML = '<p class="muted">Nessun coro pubblicato.</p>'; return; }
-    panel.innerHTML = `<p class="muted">${rows.length} cori pubblicati</p>` + rows.map(manageRow).join('');
-    rows.forEach(wireManageRow);
+    manageChants = await A.allChants();
+    renderManage();
   } catch (e) { panel.innerHTML = '<p class="err-msg">Errore di caricamento.</p>'; }
 }
 
-function manageRow(c) {
-  const media = (c.media || []).filter(m => m.stato === 'approvato').map(m =>
-    `<li data-mid="${m.id}">
-      <span class="plat ${m.piattaforma}">${PLAT[m.piattaforma] || m.piattaforma}</span>
-      <a href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.url)}</a>
-      <label class="evid"><input type="checkbox" class="m-evid"${m.in_evidenza ? ' checked' : ''}> in evidenza</label>
-      <button class="link-del m-del">elimina</button>
-    </li>`).join('');
+function segBarHTML() {
+  const counts = {};
+  manageChants.forEach(c => counts[c.stato] = (counts[c.stato] || 0) + 1);
+  return SEG.map(s =>
+    `<button class="seg-btn${s.key === manageState.seg ? ' active' : ''}" data-seg="${s.key}">${s.label} <span class="seg-count">${counts[s.key] || 0}</span></button>`
+  ).join('');
+}
+
+function renderManage() {
+  const panel = document.getElementById('panel-manage');
+  panel.innerHTML = `
+${addChantBlock()}
+<div class="manage-bar">
+  <div class="seg-group">${segBarHTML()}</div>
+  <input class="manage-search" type="search" placeholder="Cerca tra i cori…" value="${esc(manageState.q)}">
+</div>
+<div id="manage-list"></div>`;
+
+  wireAddChant();
+  panel.querySelectorAll('.seg-btn').forEach(b =>
+    b.addEventListener('click', () => {
+      manageState.seg = b.dataset.seg;
+      panel.querySelectorAll('.seg-btn').forEach(x => x.classList.toggle('active', x.dataset.seg === manageState.seg));
+      renderManageList();
+    }));
+  const s = panel.querySelector('.manage-search');
+  s.addEventListener('input', () => { manageState.q = s.value; renderManageList(); });
+  renderManageList();
+}
+
+function renderManageList() {
+  const list = document.getElementById('manage-list');
+  if (!list) return;
+  const q = manageState.q.trim().toLowerCase();
+  let rows = manageChants.filter(c => c.stato === manageState.seg);
+  if (q) rows = rows.filter(c =>
+    c.titolo.toLowerCase().includes(q) ||
+    (c.testo || '').toLowerCase().includes(q) ||
+    (c.avversario || '').toLowerCase().includes(q));
+  list.innerHTML = rows.length
+    ? rows.map(chantManageCard).join('')
+    : `<p class="muted">Nessun coro in «${segLabel(manageState.seg)}»${q ? ' per questa ricerca' : ''}.</p>`;
+  rows.forEach(wireChantManageCard);
+}
+
+/* Form collassabile "aggiungi coro" */
+function addChantBlock() {
   return `
-<article class="manage-row" data-id="${c.id}">
-  <div class="mr-head">
-    <span class="mr-title">${esc(c.titolo)}</span>
-    <span class="mr-meta">${esc(c.categoria)} · ▲${(c.popolarita_base||0)+(c.voti||0)}</span>
-    <button class="link-del c-del">elimina coro</button>
+<div class="add-chant${addChantOpen ? ' open' : ''}">
+  <button class="add-chant-toggle" type="button">${addChantOpen ? '− Chiudi' : '+ Aggiungi coro'}</button>
+  ${addChantOpen ? `
+  <form class="add-chant-form">
+    <div class="mod-row">
+      <label>Titolo *<input class="nc-titolo" required></label>
+      <label>Categoria<select class="nc-categoria">${catOptions('classico')}</select></label>
+    </div>
+    <label>Testo *<textarea class="nc-testo" rows="5" placeholder="Un verso per riga…"></textarea></label>
+    <div class="mod-row">
+      <label>Avversario<input class="nc-avversario" placeholder="—"></label>
+      <label>Punteggio base<input class="nc-pop" type="number" min="0" value="0"></label>
+    </div>
+    <div class="mod-row">
+      <label>Video (facoltativo)<select class="nc-plat">${platOptions()}</select></label>
+      <label>Link video<input class="nc-url" type="url" placeholder="https://…"></label>
+    </div>
+    <button type="submit" class="btn-approve">Pubblica coro</button>
+  </form>` : ''}
+</div>`;
+}
+
+function wireAddChant() {
+  const panel = document.getElementById('panel-manage');
+  panel.querySelector('.add-chant-toggle')?.addEventListener('click', () => { addChantOpen = !addChantOpen; renderManage(); });
+  const form = panel.querySelector('.add-chant-form');
+  if (!form) return;
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const titolo = form.querySelector('.nc-titolo').value.trim();
+    const testo  = form.querySelector('.nc-testo').value.trim();
+    if (!titolo || !testo) { toast('Titolo e testo obbligatori.', 'err'); return; }
+    const url  = form.querySelector('.nc-url').value.trim();
+    if (url && !/^https?:\/\/.+/i.test(url)) { toast('Link video non valido.', 'err'); return; }
+    const fields = {
+      titolo, testo,
+      categoria: form.querySelector('.nc-categoria').value,
+      avversario: form.querySelector('.nc-avversario').value.trim() || null,
+      popolarita_base: Math.max(0, parseInt(form.querySelector('.nc-pop').value, 10) || 0),
+      stato: 'pubblicato'
+    };
+    try {
+      const res = await A.addChant(fields);
+      if (url && res?.id) await A.addMedia({ chantId: res.id, piattaforma: form.querySelector('.nc-plat').value, url });
+      toast('Coro pubblicato! 🧡💚');
+      addChantOpen = false; manageState.seg = 'pubblicato';
+      refresh();
+    } catch { toast('Creazione non riuscita.', 'err'); }
+  });
+}
+
+/* Card editabile di un coro (dipende dallo stato) */
+function chantManageCard(c) {
+  const isRej = c.stato === 'rifiutato';
+  const media = (c.media || []).filter(m => m.stato === 'approvato').map(m => `
+    <li data-mid="${m.id}">
+      <select class="me-plat">${platOptions(m.piattaforma)}</select>
+      <input class="me-url" type="url" value="${esc(m.url)}">
+      <label class="evid"><input type="checkbox" class="m-evid"${m.in_evidenza ? ' checked' : ''}> in evidenza</label>
+      <button class="link-save me-save" type="button">salva</button>
+      <button class="link-del m-del" type="button">elimina</button>
+    </li>`).join('');
+
+  let actions;
+  if (c.stato === 'pubblicato') {
+    actions = `<button class="btn-save" data-act="save">Salva modifiche</button>
+               <button class="btn-hide" data-act="hide">Nascondi</button>
+               <button class="btn-reject" data-act="del">Elimina</button>`;
+  } else if (c.stato === 'nascosto') {
+    actions = `<button class="btn-save" data-act="save">Salva modifiche</button>
+               <button class="btn-approve" data-act="publish">Ripubblica</button>
+               <button class="btn-reject" data-act="del">Elimina</button>`;
+  } else { // rifiutato
+    actions = `<button class="btn-approve" data-act="publish">Ripubblica</button>
+               <button class="btn-reject" data-act="del">Elimina definitivamente</button>`;
+  }
+
+  return `
+<article class="mod-card manage-card" data-id="${c.id}">
+  <div class="mod-fields">
+    <label>Titolo<input class="f-titolo" value="${esc(c.titolo)}"></label>
+    <label>Testo<textarea class="f-testo" rows="5">${esc(c.testo)}</textarea></label>
+    <div class="mod-row">
+      <label>Categoria<select class="f-categoria">${catOptions(c.categoria)}</select></label>
+      <label>Avversario<input class="f-avversario" value="${esc(c.avversario || '')}" placeholder="—"></label>
+      <label>Punteggio base<input class="f-pop" type="number" min="0" value="${c.popolarita_base || 0}"></label>
+    </div>
+    ${!isRej ? `
+    <div class="mr-media-wrap">
+      <strong class="mr-media-label">Video</strong>
+      <ul class="mr-media">${media || '<li class="muted">nessun video</li>'}</ul>
+      <form class="mr-add">
+        <select class="a-plat">${platOptions()}</select>
+        <input class="a-url" type="url" placeholder="https://… (aggiungi video)">
+        <button type="submit">+ aggiungi</button>
+      </form>
+    </div>` : ''}
   </div>
-  <ul class="mr-media">${media || '<li class="muted">nessun video</li>'}</ul>
-  <form class="mr-add">
-    <select class="a-plat">${Object.entries(PLAT).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
-    <input class="a-url" type="url" placeholder="https://… (aggiungi video)">
-    <button type="submit">+ aggiungi</button>
-  </form>
+  <div class="mod-actions">${actions}</div>
 </article>`;
 }
 
-function wireManageRow(c) {
-  const el = document.querySelector(`.manage-row[data-id="${c.id}"]`);
+function wireChantManageCard(c) {
+  const el = document.querySelector(`.manage-card[data-id="${c.id}"]`);
   if (!el) return;
-  el.querySelector('.c-del').addEventListener('click', async () => {
-    if (!confirm(`Eliminare il coro «${c.titolo}»? Azione irreversibile.`)) return;
+  const readFields = () => ({
+    titolo: el.querySelector('.f-titolo').value.trim(),
+    testo: el.querySelector('.f-testo').value.trim(),
+    categoria: el.querySelector('.f-categoria').value,
+    avversario: el.querySelector('.f-avversario').value.trim() || null,
+    popolarita_base: Math.max(0, parseInt(el.querySelector('.f-pop').value, 10) || 0)
+  });
+
+  el.querySelector('[data-act="save"]')?.addEventListener('click', async () => {
+    const f = readFields();
+    if (!f.titolo || !f.testo) { toast('Titolo e testo obbligatori.', 'err'); return; }
+    try { await A.updateChant(c.id, f); toast('Modifiche salvate.'); refresh(); }
+    catch { toast('Salvataggio non riuscito.', 'err'); }
+  });
+  el.querySelector('[data-act="hide"]')?.addEventListener('click', async () => {
+    try { await A.updateChant(c.id, { ...readFields(), stato: 'nascosto' }); toast('Coro nascosto dal sito.'); refresh(); }
+    catch { toast('Operazione non riuscita.', 'err'); }
+  });
+  el.querySelector('[data-act="publish"]')?.addEventListener('click', async () => {
+    const f = readFields();
+    if (!f.titolo || !f.testo) { toast('Titolo e testo obbligatori.', 'err'); return; }
+    try { await A.updateChant(c.id, { ...f, stato: 'pubblicato' }); toast('Coro pubblicato! 🧡💚'); refresh(); }
+    catch { toast('Operazione non riuscita.', 'err'); }
+  });
+  el.querySelector('[data-act="del"]')?.addEventListener('click', async () => {
+    if (!confirm(`Eliminare il coro «${c.titolo}»? Azione irreversibile (rimuove anche i suoi video e voti).`)) return;
     try { await A.deleteChant(c.id); toast('Coro eliminato.'); refresh(); }
     catch { toast('Operazione non riuscita.', 'err'); }
   });
+
+  // video esistenti: in evidenza / salva url / elimina
   el.querySelectorAll('.mr-media li[data-mid]').forEach(li => {
     const mid = parseInt(li.dataset.mid, 10);
     li.querySelector('.m-evid')?.addEventListener('change', async e => {
       try { await A.setMedia(mid, { in_evidenza: e.target.checked }); toast('Aggiornato.'); }
       catch { toast('Operazione non riuscita.', 'err'); e.target.checked = !e.target.checked; }
+    });
+    li.querySelector('.me-save')?.addEventListener('click', async () => {
+      const url = li.querySelector('.me-url').value.trim();
+      if (!/^https?:\/\/.+/i.test(url)) { toast('Link non valido.', 'err'); return; }
+      try { await A.setMedia(mid, { url, piattaforma: li.querySelector('.me-plat').value }); toast('Video aggiornato.'); }
+      catch { toast('Operazione non riuscita.', 'err'); }
     });
     li.querySelector('.m-del')?.addEventListener('click', async () => {
       if (!confirm('Eliminare questo video?')) return;
@@ -250,7 +420,9 @@ function wireManageRow(c) {
       catch { toast('Operazione non riuscita.', 'err'); }
     });
   });
-  el.querySelector('.mr-add').addEventListener('submit', async e => {
+
+  // aggiungi video
+  el.querySelector('.mr-add')?.addEventListener('submit', async e => {
     e.preventDefault();
     const url = el.querySelector('.a-url').value.trim();
     if (!/^https?:\/\/.+/i.test(url)) { toast('Link non valido.', 'err'); return; }

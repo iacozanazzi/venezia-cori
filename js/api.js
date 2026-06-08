@@ -117,6 +117,13 @@ const VeneziaAPI = (() => {
         const { error } = await sb.from('chants').update({ stato }).eq('id', id);
         if (error) throw error;
       },
+      // Crea un coro direttamente dall'admin (es. già 'pubblicato').
+      // fields: { titolo, testo, categoria, avversario, popolarita_base, stato }
+      async addChant(fields) {
+        const { data, error } = await sb.from('chants').insert(fields).select('id').single();
+        if (error) throw error;
+        return data;   // { id } — utile per agganciare eventuali video
+      },
       async updateChant(id, fields) {
         const { error } = await sb.from('chants').update(fields).eq('id', id);
         if (error) throw error;
