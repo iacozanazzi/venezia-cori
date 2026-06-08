@@ -1,0 +1,282 @@
+/* ════════════════════════════════════════════════
+   VENEZIA CORI — Admin (estende style.css)
+   ════════════════════════════════════════════════ */
+
+.admin-tag {
+  margin-left: auto;
+  color: var(--orange);
+}
+.logout-btn {
+  margin-left: 14px;
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-ctrl);
+  color: var(--text-dim);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.logout-btn:hover { border-color: var(--cat-sfotto); color: var(--cat-sfotto); }
+
+/* ── Login / demo ── */
+.admin-login, .admin-demo {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(3rem, 10vh, 7rem) clamp(1rem, 4vw, 3rem);
+  display: flex;
+  justify-content: center;
+}
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-top: 3px solid var(--orange);
+  border-radius: var(--r-card);
+  padding: 32px 30px;
+  box-shadow: var(--shadow);
+}
+.login-card h1 {
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  font-size: 1.9rem;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+.login-sub { color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem; }
+.login-sub code { background: var(--bg-2); padding: 1px 6px; border-radius: 3px; color: var(--orange); font-size: 0.85em; }
+#login-form { display: flex; flex-direction: column; gap: 14px; }
+#login-form label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+#login-form input {
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-card);
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 11px 12px;
+  outline: none;
+}
+#login-form input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft); }
+#login-form .btn-primary { margin-top: 4px; }
+.login-err { color: var(--cat-sfotto); font-size: 0.85rem; font-weight: 600; }
+
+/* ── Dashboard ── */
+.admin-main { max-width: var(--maxw); margin: 0 auto; padding: 2rem clamp(1rem, 4vw, 3rem) 5rem; }
+.admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.6rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+.admin-tab {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-ctrl);
+  color: var(--text-dim);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s var(--ease);
+}
+.admin-tab:hover { border-color: var(--orange); color: var(--text); }
+.admin-tab.active { background: var(--orange); border-color: var(--orange); color: #120a02; }
+.tab-count {
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+  min-width: 22px;
+  text-align: center;
+}
+.admin-tab:not(.active) .tab-count { background: var(--bg-2); color: var(--orange); }
+
+.admin-panel { display: flex; flex-direction: column; gap: 14px; }
+.muted { color: var(--text-faint); font-size: 0.85rem; }
+.err-msg { color: var(--cat-sfotto); }
+
+/* ── Moderation card ── */
+.mod-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  border-radius: var(--r-card);
+  padding: 18px 20px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.mod-fields { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mod-fields label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.mod-fields input, .mod-fields textarea, .mod-fields select {
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-card);
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 9px 11px;
+  outline: none;
+}
+.mod-fields textarea { resize: vertical; line-height: 1.55; white-space: pre-wrap; }
+.mod-fields input:focus, .mod-fields textarea:focus, .mod-fields select:focus {
+  border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft);
+}
+.mod-fields option { background: #1a1a18; }
+.mod-row { display: flex; gap: 12px; }
+.mod-row label { flex: 1; }
+.mod-media { font-size: 0.8rem; color: var(--text-dim); }
+.mod-media strong { display: block; font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 5px; }
+.mod-media ul, .mr-media { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.mod-media a, .mr-media a { color: var(--orange); word-break: break-all; }
+
+.mod-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; width: 150px; }
+.mod-actions button {
+  border-radius: var(--r-ctrl);
+  border: 1px solid var(--border-strong);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+.btn-approve { background: var(--green-soft) !important; border-color: var(--green-bright) !important; color: var(--green-bright) !important; }
+.btn-approve:hover { background: var(--green-bright) !important; color: #02160b !important; }
+.btn-reject:hover { border-color: var(--cat-sfotto); color: var(--cat-sfotto); }
+.btn-save:hover { border-color: var(--orange); color: var(--orange); }
+
+.mod-media-card { align-items: center; }
+.mc-chant { font-family: 'Anton', sans-serif; font-size: 1.1rem; text-transform: uppercase; color: var(--text); }
+.mc-link { display: block; color: var(--orange); word-break: break-all; font-size: 0.88rem; }
+
+/* platform tag */
+.plat {
+  display: inline-block;
+  font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: var(--r-ctrl);
+  background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text-dim);
+}
+.plat.youtube   { color: #ff5e5e; border-color: #ff3d3d; }
+.plat.tiktok    { color: #25f4ee; border-color: #25f4ee; }
+.plat.instagram { color: #f06595; border-color: #e1306c; }
+
+/* ── Manage row ── */
+.manage-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mr-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mr-title { font-family: 'Anton', sans-serif; font-size: 1.05rem; text-transform: uppercase; }
+.mr-meta { font-size: 0.74rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.mr-media li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.84rem; }
+.evid { font-size: 0.72rem; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.link-del {
+  background: none; border: none; color: var(--text-faint);
+  font-size: 0.72rem; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0;
+}
+.link-del:hover { color: var(--cat-sfotto); }
+.c-del { margin-left: auto; }
+.mr-add { display: flex; gap: 8px; flex-wrap: wrap; }
+.mr-add select, .mr-add input {
+  background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: var(--r-card);
+  color: var(--text); font-family: 'Archivo', sans-serif; font-size: 0.84rem; padding: 7px 10px; outline: none;
+}
+.mr-add input { flex: 1; min-width: 180px; }
+.mr-add select option { background: #1a1a18; }
+.mr-add button {
+  background: var(--green-soft); border: 1px solid var(--green-bright); border-radius: var(--r-ctrl);
+  color: var(--green-bright); font-family: 'Archivo', sans-serif; font-size: 0.74rem; font-weight: 800;
+  letter-spacing: 0.04em; text-transform: uppercase; padding: 7px 14px; cursor: pointer;
+}
+.mr-add button:hover { background: var(--green-bright); color: #02160b; }
+
+/* ── Merch (admin) ── */
+.merch-add {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green-bright);
+  border-radius: var(--r-card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.merch-add-title {
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.merch-add label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.merch-add input, .merch-add textarea {
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-card);
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 9px 11px;
+  outline: none;
+}
+.merch-add textarea { resize: vertical; line-height: 1.55; }
+.merch-add input:focus, .merch-add textarea:focus {
+  border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft);
+}
+.merch-add .btn-approve { align-self: flex-start; border-radius: var(--r-ctrl); padding: 9px 16px; cursor: pointer; }
+
+.merch-edit {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  border-radius: var(--r-card);
+  padding: 18px 20px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .mod-card, .merch-edit { flex-direction: column; }
+  .mod-actions { width: 100%; flex-direction: row; }
+  .mod-actions button { flex: 1; }
+  .mod-row { flex-direction: column; gap: 12px; }
+}

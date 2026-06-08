@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / tooling
+.vscode/
+.idea/
+
+# Claude Code / agent workspace (locale, non va pubblicato)
+.claude/
+.agents/
+skills-lock.json
+
+# Note di lavoro personali (mantieni SETUP.md)
+guida-manager-venezia-pietro.md
