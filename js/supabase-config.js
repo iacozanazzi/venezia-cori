@@ -13,8 +13,8 @@
    i cori dal file statico js/chants-data.js (voti e proposte disattivati).
    ════════════════════════════════════════════════════════════════════ */
 
-const SUPABASE_URL      = 'INCOLLA_QUI_PROJECT_URL';
-const SUPABASE_ANON_KEY = 'INCOLLA_QUI_ANON_KEY';
+const SUPABASE_URL      = 'https://jyftjtktcbkdyuacuecj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_2E3cBtjNj2fnTNnPhT7Mhw_-C1r2Leu';
 
 const SUPABASE_CONFIGURED =
   SUPABASE_URL.startsWith('http') && !SUPABASE_ANON_KEY.startsWith('INCOLLA');
