@@ -61,6 +61,21 @@ function categoryLabel(cat) {
 
 function isValidUrl(u) { return /^https?:\/\/.+/i.test(u.trim()); }
 
+const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Conteggio animato 0 → target (per il numero di cori nell'hero) */
+function countUp(el, target) {
+  if (!el) return;
+  if (prefersReduced() || target <= 0) { el.textContent = target; return; }
+  const dur = 1000, t0 = performance.now();
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  (function frame(now) {
+    const p = Math.min(1, (now - t0) / dur);
+    el.textContent = Math.round(ease(p) * target);
+    if (p < 1) requestAnimationFrame(frame);
+  })(t0);
+}
+
 let toastTimer;
 function toast(msg, kind = 'ok') {
   toastEl.textContent = msg;
@@ -157,7 +172,7 @@ function renderCard(chant, query) {
       </button>
     </div>
     <div class="card-score" title="Popolarità">
-      <div class="score-bar"><div class="score-fill" style="width:${pct}%"></div></div>
+      <div class="score-bar"><div class="score-fill" data-pct="${pct}"></div></div>
     </div>
   </div>
 </article>`;
@@ -196,6 +211,10 @@ function render() {
 
   grid.innerHTML = list.map(c => renderCard(c, searchQuery)).join('');
   attachCardEvents();
+  // barre popolarità che crescono da 0 dopo il mount
+  requestAnimationFrame(() => {
+    grid.querySelectorAll('.score-fill').forEach(f => { f.style.width = (f.dataset.pct || 0) + '%'; });
+  });
 }
 
 /* ── Card Events ── */
@@ -221,6 +240,8 @@ function attachCardEvents() {
         btn.textContent = '★'; btn.classList.add('active'); btn.title = 'Rimuovi dai preferiti';
         btn.style.transform = 'scale(1.4)';
         setTimeout(() => btn.style.transform = '', 200);
+        btn.classList.add('burst');
+        setTimeout(() => btn.classList.remove('burst'), 600);
       }
       saveFavs();
       if (activeFilter === 'preferiti') render();
@@ -242,10 +263,14 @@ async function handleVote(btn) {
     voted.add(id); saveVoted();
     const chant = chants.find(c => c.id === id);
     if (chant) chant.voti = (newCount ?? chant.voti) - (chant.popolarita_base || 0);
-    // ricalcola scala e ridisegna (l'ordinamento popolarità può cambiare)
     MAX_SCORE = Math.max(1, ...chants.map(score));
-    render();
+    // delight: pop del bottone + saltino del numero, poi ridisegna (riordina per popolarità)
+    btn.classList.add('voted', 'pop');
+    const cnt = btn.querySelector('.vote-count');
+    if (cnt && chant) { cnt.textContent = score(chant); cnt.classList.add('bump'); }
     toast('Voto registrato! Forza Unione ⚽');
+    if (prefersReduced()) { render(); }
+    else { setTimeout(render, 480); }
   } catch (e) {
     btn.disabled = false;
     toast('Voto non riuscito, riprova.', 'err');
@@ -443,6 +468,7 @@ async function loadMerch() {
     if (!items.length) { merchSection.hidden = true; return; }
     merchGrid.innerHTML = items.map(renderMerchCard).join('');
     merchSection.hidden = false;
+    window.revealObserve?.(merchSection);   // attiva l'animazione di comparsa
   } catch (e) {
     console.error(e);
     merchSection.hidden = true;
@@ -455,7 +481,7 @@ async function loadChants() {
   try {
     chants = await VeneziaAPI.getPublishedChants();
     MAX_SCORE = Math.max(1, ...chants.map(score));
-    heroCount.textContent = chants.length;
+    countUp(heroCount, chants.length);
     render();
   } catch (e) {
     console.error(e);

@@ -47,7 +47,7 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
   font-family: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -58,6 +58,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;     /* niente flash grigio al tap su iOS */
 }
 
 /* ── Grain overlay (fixed, never repaints on scroll) ── */
@@ -72,12 +73,27 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ── Brand stripe (orange → green hard split) ── */
+/* ── Brand stripe (orange → green hard split) + sheen che scorre ── */
 .brand-stripe {
+  position: relative;
   height: 3px;
   width: 100%;
   background: linear-gradient(90deg,
     var(--orange) 0 55%, var(--green) 55% 100%);
+  overflow: hidden;
+}
+.brand-stripe::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: stripeSheen 6s var(--ease) 1.5s infinite;
+}
+@keyframes stripeSheen {
+  0%   { transform: translateX(-100%); }
+  35%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* ════════════════ Header ════════════════ */
@@ -148,6 +164,11 @@ header {
   background:
     radial-gradient(ellipse 70% 60% at 50% -10%, rgba(244, 123, 32, 0.16) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 110%, rgba(21, 122, 67, 0.14) 0%, transparent 60%);
+  animation: heroGlow 9s ease-in-out infinite alternate;
+}
+@keyframes heroGlow {
+  0%   { opacity: 0.75; transform: scale(1); }
+  100% { opacity: 1;    transform: scale(1.08); }
 }
 
 /* oversized VE blade watermark, skewed, low opacity */
@@ -165,6 +186,11 @@ header {
   background-repeat: no-repeat;
   background-size: contain;
   pointer-events: none;
+  animation: bladeFloat 14s ease-in-out infinite alternate;
+}
+@keyframes bladeFloat {
+  0%   { transform: translateY(-50%) rotate(-8deg); }
+  100% { transform: translateY(-54%) rotate(-5deg); }
 }
 
 .hero-badge {
@@ -395,9 +421,10 @@ header {
 .card:hover {
   border-color: var(--orange-line);
   border-left-color: var(--orange);
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow);
 }
+.card:active { transform: translateY(-1px) scale(0.995); }
 
 .card-top {
   display: flex;
@@ -513,8 +540,10 @@ header {
 }
 .score-fill {
   height: 100%;
+  width: 0;        /* parte da 0, JS imposta la larghezza → cresce con animazione */
   background: linear-gradient(90deg, var(--orange-deep), var(--orange));
   border-radius: 2px;
+  transition: width 0.9s var(--ease);
 }
 
 /* ── Search highlight ── */
@@ -931,7 +960,11 @@ footer a:hover { text-decoration: underline; }
   justify-content: center;
   overflow: hidden;
 }
-.merch-img img { width: 100%; height: 100%; object-fit: contain; }
+.merch-img img {
+  width: 100%; height: 100%; object-fit: contain;
+  transition: transform 0.4s var(--ease);
+}
+.merch-card:hover .merch-img img { transform: scale(1.06); }
 .merch-body {
   display: flex;
   flex-direction: column;
@@ -1015,6 +1048,8 @@ footer a:hover { text-decoration: underline; }
   line-height: 1.55;
 }
 .donate-btn {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1031,7 +1066,20 @@ footer a:hover { text-decoration: underline; }
   padding: 14px 28px;
   transition: transform 0.18s var(--ease), box-shadow 0.25s var(--ease);
 }
-.donate-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.donate-btn::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -120%;
+  width: 60%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s var(--ease);
+}
+.donate-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: var(--shadow); }
+.donate-btn:hover::after { left: 140%; }
+.donate-btn:active { transform: translateY(0) scale(0.99); }
+.donate-btn span[aria-hidden] { transition: transform 0.3s var(--ease); }
+.donate-btn:hover span[aria-hidden] { transform: rotate(-12deg) scale(1.15); }
 
 /* ════════════════ Footer legale ════════════════ */
 .footer-legal { margin-top: 0.6rem; font-size: 0.74rem; color: var(--text-faint); }
@@ -1083,7 +1131,107 @@ footer a:hover { text-decoration: underline; }
 }
 .cookie-ok:hover { background: var(--orange-deep); }
 
+/* ════════════════ Delighters ════════════════ */
+
+/* Header che scende all'avvio */
+header { animation: headerDrop 0.55s var(--ease); }
+@keyframes headerDrop { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+/* Ko-fi: pulsazione gentile per attirare l'occhio + icona che balla all'hover */
+.kofi-btn { animation: kofiPulse 3.2s ease-in-out 2s infinite; }
+.kofi-btn span[aria-hidden] { display: inline-block; transition: transform 0.3s var(--ease); }
+.kofi-btn:hover span[aria-hidden] { transform: rotate(-15deg) scale(1.2); }
+@keyframes kofiPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244,123,32,0); }
+  50%      { box-shadow: 0 0 0 6px rgba(244,123,32,0.18); }
+}
+
+/* Scroll reveal (sezioni con [data-reveal]) */
+[data-reveal] { opacity: 0; transform: translateY(30px); }
+[data-reveal].revealed {
+  opacity: 1; transform: none;
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+}
+
+/* Voto: pop del bottone + saltino del numero */
+.vote-count { display: inline-block; }
+.vote-btn.pop { animation: votePop 0.42s var(--ease); }
+@keyframes votePop {
+  0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); }
+}
+.vote-count.bump { animation: countBump 0.45s var(--ease); }
+@keyframes countBump {
+  0% { transform: translateY(0); }
+  45% { transform: translateY(-5px); color: var(--orange); }
+  100% { transform: translateY(0); }
+}
+
+/* Preferiti: anello che esplode quando aggiungi */
+.fav-btn { position: relative; }
+.fav-btn.burst::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  pointer-events: none;
+  animation: favBurst 0.55s var(--ease) forwards;
+}
+@keyframes favBurst {
+  0%   { transform: scale(0.55); opacity: 0.9; }
+  100% { transform: scale(2.3);  opacity: 0; }
+}
+
+/* Pill che "schiaccia" al tap */
+.pill:active { transform: scale(0.94); }
+
+/* ════════════════ Mobile / touch ════════════════ */
 @media (max-width: 640px) {
-  .kofi-btn { display: none; }   /* nel mobile resta il bottone della sezione donazioni */
-  .cookie-banner { flex-direction: column; align-items: stretch; text-align: center; }
+  .kofi-btn { display: none; }   /* su mobile resta il bottone nella sezione donazioni */
+
+  /* aree di tocco comode (≥42px) */
+  .vote-btn, .suggest-media-btn, .media-btn, .pill, #sort, .propose-btn,
+  .donate-btn, .merch-btn, .cookie-ok { min-height: 44px; }
+  .fav-btn { padding: 9px 11px; font-size: 1.32rem; }
+  .expand-btn { padding-top: 10px; padding-bottom: 4px; }
+
+  /* niente zoom automatico iOS al focus (font ≥ 16px) */
+  input, textarea, select { font-size: 16px; }
+
+  /* hero più compatto, titolo che riempie lo schermo */
+  .hero { padding-top: clamp(2rem, 7vw, 3rem); }
+  .hero h1 { font-size: clamp(2.4rem, 11vw, 3.6rem); }
+  .hero-sub { margin-bottom: 1.8rem; }
+
+  /* card e griglia più strette */
+  .card { padding: 18px 17px; }
+  .grid { gap: 13px; padding-bottom: 3.5rem; }
+
+  /* merch a 2 colonne con bottone a tutta larghezza */
+  .merch-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .merch-body { padding: 12px; gap: 6px; }
+  .merch-title { font-size: 1rem; }
+  .merch-foot { flex-direction: column; align-items: stretch; gap: 8px; }
+  .merch-btn { justify-content: center; }
+
+  /* pill scroll con bordi sfumati */
+  .pills {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  }
+
+  /* rispetto del notch / barra inferiore */
+  .cookie-banner {
+    flex-direction: column; align-items: stretch; text-align: center;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+  .toast { bottom: calc(22px + env(safe-area-inset-bottom)); }
+  footer { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
+}
+
+/* Accessibilità: chi preferisce meno movimento vede tutto fermo e visibile */
+@media (prefers-reduced-motion: reduce) {
+  .brand-stripe::after, .hero::before, .hero::after, .kofi-btn, header { animation: none !important; }
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
+  .score-fill { transition: none !important; }
 }
