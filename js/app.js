@@ -167,6 +167,9 @@ function renderCard(chant, query) {
       <button class="vote-btn ${hasVoted ? 'voted' : ''}" data-id="${chant.id}" title="Mi piace questo coro"${VeneziaAPI.demo ? ' disabled' : ''}>
         <span aria-hidden="true">▲</span> <span class="vote-count">${sc}</span>
       </button>
+      <button class="copy-btn" data-id="${chant.id}" title="Copia il testo del coro">
+        <span aria-hidden="true">⧉</span> <span class="copy-label">Copia</span>
+      </button>
       <button class="suggest-media-btn" data-id="${chant.id}" data-titolo="${escape(chant.titolo)}" title="Proponi un video per questo coro">
         + video
       </button>
@@ -180,7 +183,15 @@ function renderCard(chant, query) {
 
 /* ── Render states ── */
 function renderLoading() {
-  grid.innerHTML = `<div class="state-msg"><div class="spinner" aria-hidden="true"></div><p>Carico i cori…</p></div>`;
+  const skel = `
+<div class="skel-card" aria-hidden="true">
+  <div class="skel-line skel-badge"></div>
+  <div class="skel-line skel-title"></div>
+  <div class="skel-line w80"></div>
+  <div class="skel-line w55"></div>
+  <div class="skel-foot"><div class="skel-line"></div><div class="skel-line"></div></div>
+</div>`;
+  grid.innerHTML = `<span class="sr-only" role="status">Carico i cori…</span>` + skel.repeat(6);
 }
 
 function renderError() {
@@ -198,14 +209,27 @@ function render() {
   countEl.textContent = list.length === 1 ? '1 coro trovato' : `${list.length} cori trovati`;
 
   if (list.length === 0) {
+    const isFavEmpty = activeFilter === 'preferiti' && !searchQuery;
+    const title = isFavEmpty ? 'Ancora nessun preferito' : 'La curva è rimasta senza voce';
+    const sub = isFavEmpty
+      ? 'Tocca la ☆ su un coro per ritrovarlo qui, pronto per la partita.'
+      : (searchQuery
+          ? `Nessun coro per <strong>«${escape(searchQuery)}»</strong>. Magari in curva lo cantano già e qui manca: proponilo tu.`
+          : 'Nessun coro in questa categoria… per ora. Proponi tu il primo.');
     grid.innerHTML = `
 <div class="empty-state">
-  <svg class="empty-icon" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+  <svg class="empty-icon" width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
   </svg>
-  <h3>Nessun coro trovato</h3>
-  <p>Prova con un termine diverso o cambia il filtro.</p>
+  <h3>${title}</h3>
+  <p>${sub}</p>
+  <div class="empty-actions">
+    ${isFavEmpty ? '' : `<button class="btn-primary" id="empty-propose">🎤 Proponi un coro</button>`}
+    <button class="btn-ghost" id="empty-reset">Mostra tutti i cori</button>
+  </div>
 </div>`;
+    document.getElementById('empty-propose')?.addEventListener('click', openChantForm);
+    document.getElementById('empty-reset')?.addEventListener('click', resetFilters);
     return;
   }
 
@@ -249,8 +273,45 @@ function attachCardEvents() {
   });
 
   grid.querySelectorAll('.vote-btn').forEach(btn => btn.addEventListener('click', () => handleVote(btn)));
+  grid.querySelectorAll('.copy-btn').forEach(btn => btn.addEventListener('click', () => copyChant(btn)));
   grid.querySelectorAll('.suggest-media-btn').forEach(btn =>
     btn.addEventListener('click', () => openMediaForm(parseInt(btn.dataset.id, 10), btn.dataset.titolo)));
+}
+
+/* ── Copia testo del coro ── */
+const COPY_QUIPS = [
+  'Copiato! Ora cantalo a squarciagola 🎤',
+  'Copiato! Portalo in curva 🧡💚',
+  'Copiato! Falla tremare, la laguna 🌊'
+];
+async function copyChant(btn) {
+  const id = parseInt(btn.dataset.id, 10);
+  const chant = chants.find(c => c.id === id);
+  if (!chant) return;
+  const text = `${chant.titolo.toUpperCase()}\n\n${chant.testo}`;
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; }
+  catch (_) {
+    // fallback per contesti senza Clipboard API
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ok = document.execCommand('copy');
+      ta.remove();
+    } catch (_) { /* niente da fare */ }
+  }
+  if (!ok) { toast('Non riesco a copiare: seleziona il testo a mano.', 'err'); return; }
+  const label = btn.querySelector('.copy-label');
+  btn.classList.add('copied');
+  if (label) label.textContent = 'Copiato!';
+  toast(COPY_QUIPS[(Math.random() * COPY_QUIPS.length) | 0]);
+  setTimeout(() => {
+    btn.classList.remove('copied');
+    if (label) label.textContent = 'Copia';
+  }, 1800);
 }
 
 /* ── Voti ── */
@@ -287,12 +348,30 @@ function openModal(html) {
   modalBody.querySelector('input, textarea, select, button')?.focus();
 }
 function closeModal() {
-  modal.hidden = true;
-  modalBody.innerHTML = '';
-  document.body.style.overflow = '';
+  if (modal.hidden) return;
+  const finish = () => {
+    modal.classList.remove('closing');
+    modal.hidden = true;
+    modalBody.innerHTML = '';
+    document.body.style.overflow = '';
+  };
+  if (prefersReduced()) { finish(); return; }
+  // uscita simmetrica all'entrata: slide giù + fade, poi nascondi davvero
+  modal.classList.add('closing');
+  let done = false;
+  const onEnd = () => { if (!done) { done = true; finish(); } };
+  modal.querySelector('.modal')?.addEventListener('animationend', onEnd, { once: true });
+  setTimeout(onEnd, 320);                          // rete di sicurezza
 }
 modalClose.addEventListener('click', closeModal);
-modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+/* chiudi dall'overlay solo se il gesto è INIZIATO lì: evita chiusure
+   fantasma (ghost click su mobile, selezione testo che finisce fuori) */
+let overlayPress = false;
+modal.addEventListener('pointerdown', e => { overlayPress = e.target === modal; });
+modal.addEventListener('click', e => {
+  if (e.target === modal && overlayPress) closeModal();
+  overlayPress = false;
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
 
 const platformOptions = Object.entries(PLATFORMS)
@@ -398,6 +477,7 @@ async function submitForm(form, action, okMsg) {
     await action();
     closeModal();
     toast(okMsg);
+    window.FX?.confetti({ count: 160 });           // festa: la proposta è partita
   } catch (err) {
     submitBtn.disabled = false; submitBtn.textContent = 'Riprova';
     toast('Invio non riuscito, riprova.', 'err');
@@ -407,8 +487,14 @@ async function submitForm(form, action, okMsg) {
 proposeBtn.addEventListener('click', openChantForm);
 
 /* ── Search (debounced) ── */
-let searchTimer;
+const searchWrap = document.querySelector('.search-wrap');
+let searchTimer, typingTimer;
 searchEl.addEventListener('input', () => {
+  // la lente "ascolta" mentre digiti
+  searchWrap.classList.add('typing');
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => searchWrap.classList.remove('typing'), 650);
+
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     searchQuery = searchEl.value.trim();
@@ -420,6 +506,16 @@ clearBtn.addEventListener('click', () => {
   searchEl.value = ''; searchQuery = '';
   clearBtn.classList.remove('visible'); searchEl.focus(); render();
 });
+
+/* Riporta tutto allo stato iniziale (usato dall'empty state) */
+function resetFilters() {
+  searchEl.value = '';
+  searchQuery = '';
+  clearBtn.classList.remove('visible');
+  activeFilter = 'tutti';
+  pills.forEach(p => p.classList.toggle('active', p.dataset.filter === 'tutti'));
+  render();
+}
 
 /* ── Pills ── */
 pills.forEach(pill => {

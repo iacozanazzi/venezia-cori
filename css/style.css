@@ -220,13 +220,37 @@ header {
   text-transform: uppercase;
   margin-bottom: 1rem;
   text-wrap: balance;
-  animation: rise 0.6s var(--ease) 0.06s both;
+}
+/* le righe entrano una dopo l'altra, come un coro che monta dalla curva */
+.hero h1 .h1-line {
+  display: inline-block;
+  animation: chantRise 0.65s var(--ease) 0.05s both;
+}
+.hero h1 em.h1-line { animation-delay: 0.24s; }
+@keyframes chantRise {
+  from { opacity: 0; transform: translateY(0.55em) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .hero h1 em {
   font-style: normal;
-  color: var(--orange);
   -webkit-text-stroke: 0;
+  /* gradiente arancioneroverde vivo che scorre nel testo */
+  background: linear-gradient(100deg,
+    var(--orange) 0%, #ffa95e 22%, var(--orange) 46%,
+    var(--green-bright) 72%, var(--orange) 100%);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: chantRise 0.65s var(--ease) 0.24s both,
+             emShift 8s linear 1.2s infinite;
 }
+@keyframes emShift {
+  from { background-position: 0% 0; }
+  to   { background-position: -240% 0; }
+}
+/* il watermark VE segue il puntatore (var impostate da anim.js, solo desktop) */
+.hero::after { translate: var(--par-x, 0px) var(--par-y, 0px); }
 
 .hero-sub {
   font-size: clamp(0.9rem, 2vw, 1.02rem);
@@ -284,7 +308,21 @@ header {
   transition: color 0.2s;
 }
 .search-clear:hover { color: var(--text); }
-.search-clear.visible { display: block; }
+.search-clear.visible { display: block; animation: clearPop 0.25s var(--ease); }
+@keyframes clearPop {
+  from { opacity: 0; transform: translateY(-50%) scale(0.5); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+/* la lente "ascolta" mentre digiti (classe .typing gestita da app.js) */
+.search-wrap.typing .search-icon {
+  color: var(--orange);
+  animation: searchPulse 0.5s var(--ease) infinite alternate;
+}
+@keyframes searchPulse {
+  from { transform: translateY(-50%) scale(1) rotate(0deg); }
+  to   { transform: translateY(-50%) scale(1.22) rotate(-10deg); }
+}
 
 /* ════════════════ Toolbar ════════════════ */
 .toolbar {
@@ -640,8 +678,34 @@ footer a:hover { text-decoration: underline; }
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--orange-deep), var(--green));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+html { scrollbar-width: thin; scrollbar-color: var(--orange-deep) var(--bg); }
+
+/* ── Selezione testo nei colori del brand ── */
+::selection { background: var(--orange); color: #120a02; }
+
+/* ── Focus visibile curato (tastiera) ── */
+:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+/* i campi hanno già il loro anello arancio al focus: niente doppio bordo */
+#search:focus-visible,
+.proposal-form input:focus-visible,
+.proposal-form textarea:focus-visible,
+.proposal-form select:focus-visible,
+#sort:focus-visible { outline: none; }
+
+/* ── Utility: testo solo per screen reader ── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 
 /* ════════════════ Media buttons (YouTube / TikTok / Instagram) ════════════════ */
 .card-media { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -767,8 +831,19 @@ footer a:hover { text-decoration: underline; }
   border-radius: var(--r-card);
   padding: 28px clamp(20px, 4vw, 32px) 26px;
   box-shadow: var(--shadow);
-  animation: rise 0.3s var(--ease) both;
+  animation: modalSpring 0.45s var(--ease) both;
 }
+/* molla naturale: piccolo overshoot, poi assesta */
+@keyframes modalSpring {
+  0%   { opacity: 0; transform: translateY(28px) scale(0.96); }
+  62%  { opacity: 1; transform: translateY(-5px) scale(1.004); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* uscita simmetrica (classe .closing gestita da app.js) */
+.modal-overlay.closing { animation: fadeOut 0.22s var(--ease) both; }
+.modal-overlay.closing .modal { animation: modalOut 0.22s var(--ease) both; }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes modalOut { to { opacity: 0; transform: translateY(16px) scale(0.97); } }
 .modal-close {
   position: absolute;
   top: 14px; right: 14px;
@@ -1194,13 +1269,141 @@ header { animation: headerDrop 0.55s var(--ease); }
 /* Pill che "schiaccia" al tap */
 .pill:active { transform: scale(0.94); }
 
+/* ── Ripple tattile sui bottoni (span creato da anim.js) ── */
+.pill, .propose-btn, .vote-btn, .copy-btn, .suggest-media-btn,
+.btn-primary, .btn-ghost, .retry-btn, .cookie-ok {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-fx {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.25;
+  transform: scale(0);
+  pointer-events: none;
+  animation: rippleGo 0.55s var(--ease) forwards;
+}
+@keyframes rippleGo { to { transform: scale(1); opacity: 0; } }
+
+/* ── Copia testo del coro ── */
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-ctrl);
+  color: var(--text-dim);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.copy-btn:hover { border-color: var(--green-bright); color: var(--green-bright); }
+.copy-btn.copied {
+  border-color: var(--green-bright);
+  background: var(--green-bright);
+  color: #02160b;
+  animation: votePop 0.42s var(--ease);
+}
+
+/* ── Skeleton loader brandizzati (mentre i cori arrivano da Supabase) ── */
+.skel-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--r-card);
+  padding: 20px 22px;
+  min-height: 198px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* la riga laterale alterna i colori della curva */
+.skel-card:nth-child(3n+1) { border-left-color: var(--orange); }
+.skel-card:nth-child(3n+2) { border-left-color: var(--green-bright); }
+.skel-card:nth-child(3n)   { border-left-color: var(--gold); }
+.skel-line { height: 12px; border-radius: 2px; background: var(--surface-2); }
+.skel-badge { width: 78px; height: 20px; }
+.skel-title { height: 24px; width: 62%; }
+.skel-line.w80 { width: 82%; }
+.skel-line.w55 { width: 54%; }
+.skel-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+}
+.skel-foot .skel-line { width: 64px; height: 18px; }
+.skel-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(100deg,
+    transparent 32%, rgba(244,123,32,0.06) 47%,
+    rgba(255,255,255,0.07) 53%, transparent 68%);
+  animation: skelSheen 1.3s ease infinite;
+}
+@keyframes skelSheen { to { transform: translateX(100%); } }
+
+/* ── Empty state con personalità ── */
+.empty-state .empty-icon { animation: megaSway 2.4s var(--ease) infinite; }
+@keyframes megaSway {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-7deg) scale(1.05); }
+  60%      { transform: rotate(5deg); }
+}
+.empty-state p { max-width: 46ch; margin: 0 auto; }
+.empty-state p strong { color: var(--orange); }
+.empty-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+/* ── Coriandoli (canvas creato al volo da anim.js) ── */
+.fx-confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 500;
+  pointer-events: none;
+}
+
+/* ── Easter egg: il logo festeggia ── */
+.logo.party .logo-icon { animation: logoParty 0.7s var(--ease); }
+@keyframes logoParty {
+  0%   { transform: rotate(0) scale(1); }
+  45%  { transform: rotate(-14deg) scale(1.3); }
+  100% { transform: rotate(0) scale(1); }
+}
+
 /* ════════════════ Mobile / touch ════════════════ */
 @media (max-width: 640px) {
   .kofi-btn { display: none; }   /* su mobile resta il bottone nella sezione donazioni */
 
   /* aree di tocco comode (≥42px) */
-  .vote-btn, .suggest-media-btn, .media-btn, .pill, #sort, .propose-btn,
+  .vote-btn, .suggest-media-btn, .copy-btn, .media-btn, .pill, #sort, .propose-btn,
   .donate-btn, .merch-btn, .cookie-ok { min-height: 44px; }
+
+  /* card "viva" sotto il dito: press chiaro e immediato */
+  .card:active {
+    transform: scale(0.982);
+    border-color: var(--orange-line);
+    transition-duration: 0.08s;
+  }
   .fav-btn { padding: 9px 11px; font-size: 1.32rem; }
   .expand-btn { padding-top: 10px; padding-bottom: 4px; }
 
@@ -1240,7 +1443,10 @@ header { animation: headerDrop 0.55s var(--ease); }
 
 /* Accessibilità: chi preferisce meno movimento vede tutto fermo e visibile */
 @media (prefers-reduced-motion: reduce) {
-  .brand-stripe::after, .hero::before, .hero::after, .kofi-btn, header { animation: none !important; }
+  .brand-stripe::after, .hero::before, .hero::after, .kofi-btn, header,
+  .hero h1 em, .search-wrap.typing .search-icon, .skel-card::after,
+  .empty-state .empty-icon, .ripple-fx { animation: none !important; }
   [data-reveal] { opacity: 1 !important; transform: none !important; }
   .score-fill { transition: none !important; }
+  .hero::after { translate: 0 0; }
 }
