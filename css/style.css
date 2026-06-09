@@ -483,8 +483,10 @@ header {
   font-size: 0.9rem;
   color: var(--text-dim);
   line-height: 1.68;
-  white-space: pre-line;
 }
+/* pre-line solo sul testo dei cori, NON sul contenitore: altrimenti gli
+   spazi/indentazioni dell'HTML tra gli elementi diventano righe vuote */
+.lyrics-preview, .lyrics-full { white-space: pre-line; }
 .lyrics-full { display: none; margin-top: 2px; }
 .lyrics-full.open { display: block; }
 
@@ -620,10 +622,17 @@ footer a:hover { text-decoration: underline; }
 /* ════════════════ Responsive ════════════════ */
 @media (max-width: 640px) {
   .toolbar { flex-direction: column; align-items: stretch; }
-  .pills { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; scrollbar-width: none; }
+  /* min-width:0 è essenziale: senza, il flex-item .pills si rifiuta di
+     restringersi sotto la larghezza del contenuto e sfora il viewport */
+  .pills {
+    min-width: 0; max-width: 100%;
+    overflow-x: auto; flex-wrap: nowrap; flex: 0 1 auto;
+    padding-bottom: 4px; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+  }
   .pills::-webkit-scrollbar { display: none; }
   .pill { flex-shrink: 0; }
-  .sort-wrap { justify-content: space-between; }
+  .sort-wrap { justify-content: space-between; width: 100%; }
   .header-right { display: none; }
   .grid { grid-template-columns: 1fr; }
 }
