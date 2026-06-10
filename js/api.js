@@ -10,8 +10,19 @@ const VeneziaAPI = (() => {
 
   /* selezione cori + media annidati (una sola query) */
   const CHANT_SELECT =
-    'id,titolo,testo,categoria,avversario,popolarita_base,voti,' +
+    'id,titolo,testo,categoria,avversario,popolarita_base,voti,created_at,' +
     'media(id,piattaforma,url,in_evidenza,stato)';
+
+  /* cache locale dell'ultimo elenco: il sito funziona anche offline
+     (allo stadio la rete va e viene — i testi restano) */
+  const CACHE_KEY = 'venezia-cache-chants';
+  function readCache() {
+    try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); }
+    catch { return null; }
+  }
+  function writeCache(list) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(list)); } catch { /* quota piena: pazienza */ }
+  }
 
   function fromStatic() {
     // CHANTS è una const globale definita in chants-data.js (non su window)
@@ -25,19 +36,38 @@ const VeneziaAPI = (() => {
 
   return {
     demo: DEMO,
+    fromCache: false,    // true se l'ultimo load è arrivato dalla cache offline
 
     /* ── PUBBLICO ─────────────────────────────────────────────── */
 
     // Cori pubblicati. I media vengono filtrati ai soli approvati in evidenza.
+    // Se la rete manca, ripiega sull'ultima copia salvata in localStorage.
     async getPublishedChants() {
       if (DEMO) return fromStatic();
-      const { data, error } = await sb
-        .from('chants').select(CHANT_SELECT).eq('stato', 'pubblicato');
-      if (error) throw error;
-      return data.map(c => ({
-        ...c,
-        media: (c.media || []).filter(m => m.stato === 'approvato' && m.in_evidenza)
-      }));
+      this.fromCache = false;
+      try {
+        const { data, error } = await sb
+          .from('chants').select(CHANT_SELECT).eq('stato', 'pubblicato');
+        if (error) throw error;
+        const list = data.map(c => ({
+          ...c,
+          media: (c.media || []).filter(m => m.stato === 'approvato' && m.in_evidenza)
+        }));
+        writeCache(list);
+        return list;
+      } catch (err) {
+        const cached = readCache();
+        if (cached && cached.length) { this.fromCache = true; return cached; }
+        throw err;
+      }
+    },
+
+    // Telemetria minima fai-da-te (tabella events, vedi db/migration-analytics.sql).
+    // Fail-silent per design: se la tabella non esiste o la rete manca, pazienza.
+    track(tipo, dati) {
+      if (DEMO || !navigator.onLine) return;
+      try { sb.from('events').insert({ tipo, dati: dati || null }).then(() => {}, () => {}); }
+      catch { /* mai rompere il sito per l'analytics */ }
     },
 
     // Vota un coro. Ritorna il nuovo conteggio, o null in demo.

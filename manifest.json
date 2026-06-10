@@ -1,0 +1,16 @@
+{
+  "name": "Venezia Cori — Forza Unione",
+  "short_name": "Venezia Cori",
+  "description": "Tutti i cori del Venezia FC. Cerca, filtra e salva i tuoi preferiti — anche offline, allo stadio.",
+  "lang": "it",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

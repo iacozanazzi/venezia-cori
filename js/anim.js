@@ -33,7 +33,8 @@
 
   /* ── Ripple tattile sui bottoni ──────────────────────────────── */
   const RIPPLE_SEL = '.pill, .propose-btn, .vote-btn, .copy-btn, ' +
-    '.suggest-media-btn, .btn-primary, .btn-ghost, .retry-btn, .cookie-ok';
+    '.suggest-media-btn, .btn-primary, .btn-ghost, .retry-btn, .cookie-ok, ' +
+    '.mini-btn, .stadium-btn';
   document.addEventListener('pointerdown', e => {
     if (reduce()) return;
     const host = e.target.closest(RIPPLE_SEL);

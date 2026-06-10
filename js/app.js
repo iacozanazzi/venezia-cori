@@ -56,8 +56,21 @@ function highlight(text, query) {
 }
 
 function categoryLabel(cat) {
-  return { classico:'Classico', incoraggiamento:'Incoraggiamento', curva:'Curva', sfotto:'Sfottò', derby:'Derby' }[cat] || cat;
+  return { classico:'Classico', incoraggiamento:'Incoraggiamento', curva:'Curva', sfotto:'Sfottò', derby:'Derby', nuovi:'Novità' }[cat] || cat;
 }
+
+/* Un coro è "nuovo" se aggiunto negli ultimi 14 giorni, ma SOLO dopo il
+   caricamento iniziale del database (2026-06-08): il batch storico non
+   deve nascere tutto col badge "Nuovo" addosso */
+const NEW_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+const NEW_EPOCH = Date.parse('2026-06-09T00:00:00Z');
+function isNew(c) {
+  if (!c.created_at) return false;
+  const t = Date.parse(c.created_at);
+  return !isNaN(t) && t >= NEW_EPOCH && (Date.now() - t) < NEW_WINDOW_MS;
+}
+
+function chantUrl(id) { return `${location.origin}${location.pathname}#coro-${id}`; }
 
 function isValidUrl(u) { return /^https?:\/\/.+/i.test(u.trim()); }
 
@@ -91,6 +104,8 @@ function filtered() {
 
   if (activeFilter === 'preferiti') {
     list = list.filter(c => favorites.has(c.id));
+  } else if (activeFilter === 'nuovi') {
+    list = list.filter(isNew);
   } else if (activeFilter !== 'tutti') {
     list = list.filter(c => c.categoria === activeFilter);
   }
@@ -140,12 +155,25 @@ function renderCard(chant, query) {
 <article class="card" data-id="${chant.id}" data-cat="${chant.categoria}">
   <div class="card-top">
     <div class="card-badges">
+      ${isNew(chant) ? '<span class="badge badge-nuovo">Nuovo</span>' : ''}
       <span class="badge badge-${chant.categoria}">${categoryLabel(chant.categoria)}</span>
       ${chant.avversario ? `<span class="badge badge-avversario">vs ${escape(chant.avversario)}</span>` : ''}
     </div>
-    <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${chant.id}" title="${isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}">
-      ${isFav ? '★' : '☆'}
-    </button>
+    <div class="card-icons">
+      <button class="icon-btn stadium-open" data-id="${chant.id}" title="Modalità stadio: testo gigante a schermo intero">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+        </svg>
+      </button>
+      <button class="icon-btn share-btn" data-id="${chant.id}" title="Condividi questo coro">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+        </svg>
+      </button>
+      <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${chant.id}" title="${isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}">
+        ${isFav ? '★' : '☆'}
+      </button>
+    </div>
   </div>
 
   <h2 class="card-title">${highlight(chant.titolo, query)}</h2>
@@ -158,6 +186,7 @@ function renderCard(chant, query) {
       <span class="expand-icon">▾</span>
       <span class="expand-text">Leggi tutto</span>
     </button>` : ''}
+    <button class="fix-btn" data-id="${chant.id}">✎ Testo sbagliato? Correggilo</button>
   </div>
 
   ${mediaButtons(chant)}
@@ -204,11 +233,18 @@ function renderError() {
   document.getElementById('retry-btn')?.addEventListener('click', loadChants);
 }
 
+let lastMissTracked = '';
 function render() {
   const list = filtered();
   countEl.textContent = list.length === 1 ? '1 coro trovato' : `${list.length} cori trovati`;
+  updateDailyVisibility();
 
   if (list.length === 0) {
+    // telemetria: cosa cercano e non trovano (= cori da aggiungere)
+    if (searchQuery && searchQuery !== lastMissTracked) {
+      lastMissTracked = searchQuery;
+      VeneziaAPI.track('search_miss', { q: searchQuery.slice(0, 80) });
+    }
     const isFavEmpty = activeFilter === 'preferiti' && !searchQuery;
     const title = isFavEmpty ? 'Ancora nessun preferito' : 'La curva è rimasta senza voce';
     const sub = isFavEmpty
@@ -276,6 +312,32 @@ function attachCardEvents() {
   grid.querySelectorAll('.copy-btn').forEach(btn => btn.addEventListener('click', () => copyChant(btn)));
   grid.querySelectorAll('.suggest-media-btn').forEach(btn =>
     btn.addEventListener('click', () => openMediaForm(parseInt(btn.dataset.id, 10), btn.dataset.titolo)));
+  grid.querySelectorAll('.share-btn').forEach(btn =>
+    btn.addEventListener('click', () => shareChant(parseInt(btn.dataset.id, 10))));
+  grid.querySelectorAll('.stadium-open').forEach(btn =>
+    btn.addEventListener('click', () => openStadium(parseInt(btn.dataset.id, 10))));
+  grid.querySelectorAll('.fix-btn').forEach(btn =>
+    btn.addEventListener('click', () => openCorrectionForm(parseInt(btn.dataset.id, 10))));
+}
+
+/* ── Condivisione ── */
+async function shareChant(id) {
+  const chant = chants.find(c => c.id === id);
+  if (!chant) return;
+  const url = chantUrl(id);
+  VeneziaAPI.track('share', { id });
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `${chant.titolo} · Venezia Cori`,
+        text: `«${chant.titolo}» — il coro su Venezia Cori 🧡💚`,
+        url
+      });
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; /* altrimenti fallback */ }
+  }
+  try { await navigator.clipboard.writeText(url); toast('Link copiato! Mandalo in chat 🧡💚'); }
+  catch { toast('Non riesco a copiare il link.', 'err'); }
 }
 
 /* ── Copia testo del coro ── */
@@ -428,6 +490,7 @@ function openChantForm() {
       if (!isValidUrl(f.url.value)) { toast('Il link del video non sembra valido.', 'err'); return; }
       media.push({ piattaforma: f.piattaforma.value, url: f.url.value.trim() });
     }
+    VeneziaAPI.track('proposal', null);
     await submitForm(f, () => VeneziaAPI.proposeChant({
       titolo, testo, categoria: f.categoria.value,
       avversario: f.avversario.value.trim(), media
@@ -485,6 +548,265 @@ async function submitForm(form, action, okMsg) {
 }
 
 proposeBtn.addEventListener('click', openChantForm);
+
+/* Form: segnala una correzione del testo (riusa la coda di moderazione) */
+function openCorrectionForm(id) {
+  const chant = chants.find(c => c.id === id);
+  if (!chant) return;
+  openModal(`
+    <h2 id="modal-title" class="modal-title">Correggi il testo</h2>
+    <p class="form-note strong">per «${escape(chant.titolo)}»</p>
+    ${demoNotice}
+    <form id="fix-form" class="proposal-form" novalidate>
+      <label>Testo corretto *<textarea name="testo" rows="8" required>${escape(chant.testo)}</textarea></label>
+      <p class="form-note">La correzione arriva in moderazione: confronto i testi e aggiorno il coro. Grazie che tieni d'occhio la curva ✏️🧡💚</p>
+      <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" data-close>Annulla</button>
+        <button type="submit" class="btn-primary"${VeneziaAPI.demo ? ' disabled' : ''}>Invia correzione</button>
+      </div>
+    </form>`);
+
+  wireClose();
+  document.getElementById('fix-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.website.value) { closeModal(); return; }
+    const testo = f.testo.value.trim();
+    if (!testo) { toast('Il testo non può essere vuoto.', 'err'); return; }
+    if (testo === chant.testo.trim()) { toast('Il testo è identico all\'originale 🙂', 'err'); return; }
+    VeneziaAPI.track('correction', { id });
+    await submitForm(f, () => VeneziaAPI.proposeChant({
+      titolo: `[Correzione] ${chant.titolo}`, testo,
+      categoria: chant.categoria, avversario: chant.avversario || '', media: []
+    }), 'Grazie! La correzione è in moderazione. ✏️');
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   MODALITÀ STADIO — testo gigante a schermo intero, schermo sempre
+   acceso (Wake Lock), auto-scroll opzionale, condivisione immagine.
+   ════════════════════════════════════════════════════════════════════ */
+const stadiumEl       = document.getElementById('stadium');
+const stadiumTitleEl  = document.getElementById('stadium-title');
+const stadiumTextEl   = document.getElementById('stadium-text');
+const stadiumScroller = document.getElementById('stadium-scroller');
+const stadiumScrollBtn= document.getElementById('stadium-scroll');
+const stadiumImgBtn   = document.getElementById('stadium-img');
+const stadiumCloseBtn = document.getElementById('stadium-close');
+
+let stadiumChant = null;
+let wakeLock     = null;
+let scrollRaf    = 0;
+
+async function openStadium(id) {
+  const chant = chants.find(c => c.id === id);
+  if (!chant) return;
+  stadiumChant = chant;
+  stadiumTitleEl.textContent = chant.titolo;
+  stadiumTextEl.textContent  = chant.testo;
+  stadiumScroller.scrollTop  = 0;
+  stadiumEl.hidden = false;
+  document.body.style.overflow = 'hidden';
+  VeneziaAPI.track('stadium', { id });
+  // schermo sempre acceso mentre canti (dove supportato)
+  try { wakeLock = await navigator.wakeLock?.request('screen'); } catch { wakeLock = null; }
+}
+
+function closeStadium() {
+  if (stadiumEl.hidden) return;
+  stadiumEl.hidden = true;
+  document.body.style.overflow = '';
+  stopStadiumScroll();
+  stadiumChant = null;
+  wakeLock?.release().catch(() => {});
+  wakeLock = null;
+}
+
+function stopStadiumScroll() {
+  cancelAnimationFrame(scrollRaf);
+  scrollRaf = 0;
+  stadiumScrollBtn.classList.remove('active');
+}
+
+stadiumScrollBtn.addEventListener('click', () => {
+  if (scrollRaf) { stopStadiumScroll(); return; }
+  stadiumScrollBtn.classList.add('active');
+  (function step() {
+    stadiumScroller.scrollTop += 0.7;
+    const end = stadiumScroller.scrollTop + stadiumScroller.clientHeight >= stadiumScroller.scrollHeight - 4;
+    if (end) { stopStadiumScroll(); return; }
+    scrollRaf = requestAnimationFrame(step);
+  })();
+});
+
+stadiumCloseBtn.addEventListener('click', closeStadium);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !stadiumEl.hidden) closeStadium(); });
+
+// se l'app torna in primo piano con lo stadio aperto, ri-chiedi il wake lock
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && !stadiumEl.hidden && !wakeLock) {
+    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch { /* pazienza */ }
+  }
+});
+
+/* ── Immagine condivisibile del coro (canvas, formato 4:5 da social) ── */
+stadiumImgBtn.addEventListener('click', async () => {
+  if (!stadiumChant) return;
+  stadiumImgBtn.disabled = true;
+  try { await shareChantImage(stadiumChant); }
+  catch (e) { console.error(e); toast('Non riesco a creare l\'immagine.', 'err'); }
+  stadiumImgBtn.disabled = false;
+});
+
+function wrapText(ctx, text, maxW) {
+  const out = [];
+  for (const raw of text.split('\n')) {
+    const words = raw.split(/\s+/).filter(Boolean);
+    if (!words.length) { out.push(''); continue; }
+    let line = words[0];
+    for (const w of words.slice(1)) {
+      if (ctx.measureText(line + ' ' + w).width <= maxW) line += ' ' + w;
+      else { out.push(line); line = w; }
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+async function shareChantImage(chant) {
+  try { await document.fonts.load('400 80px Anton'); } catch { /* fallback ai font di sistema */ }
+  const W = 1080, H = 1350, PAD = 90;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+
+  // fondo + bande arancioneroverdi
+  x.fillStyle = '#0a0a0a'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#f47b20'; x.fillRect(0, 0, W * 0.55, 16);
+  x.fillStyle = '#157a43'; x.fillRect(W * 0.55, 0, W * 0.45, 16);
+  x.fillStyle = '#157a43'; x.fillRect(0, H - 16, W * 0.55, 16);
+  x.fillStyle = '#f47b20'; x.fillRect(W * 0.55, H - 16, W * 0.45, 16);
+
+  // watermark VE in basso a destra
+  x.globalAlpha = 0.14;
+  x.fillStyle = '#f47b20';
+  x.beginPath(); x.moveTo(640, 1010); x.lineTo(840, 1010); x.lineTo(790, 1210); x.lineTo(590, 1210); x.closePath(); x.fill();
+  x.fillStyle = '#157a43';
+  x.beginPath(); x.moveTo(880, 1010); x.lineTo(1090, 1010); x.lineTo(1040, 1210); x.lineTo(830, 1210); x.closePath(); x.fill();
+  x.globalAlpha = 1;
+
+  // intestazione
+  x.textAlign = 'center';
+  x.fillStyle = '#9b9a96';
+  x.font = '700 30px Archivo, Helvetica, sans-serif';
+  x.fillText('VENEZIA CORI · FORZA UNIONE', W / 2, 110);
+
+  // titolo (arancio)
+  x.fillStyle = '#f47b20';
+  x.font = '400 72px Anton, Impact, sans-serif';
+  const titleLines = wrapText(x, chant.titolo.toUpperCase(), W - PAD * 2);
+  let y = 220;
+  for (const l of titleLines) { x.fillText(l, W / 2, y); y += 84; }
+
+  // testo (bianco) — riduci il corpo se il coro è lungo
+  y += 30;
+  let size = 54;
+  x.font = `400 ${size}px Anton, Impact, sans-serif`;
+  let lines = wrapText(x, chant.testo.toUpperCase(), W - PAD * 2);
+  const maxY = H - 200;
+  if (y + lines.length * (size + 18) > maxY) {
+    size = 40;
+    x.font = `400 ${size}px Anton, Impact, sans-serif`;
+    lines = wrapText(x, chant.testo.toUpperCase(), W - PAD * 2);
+  }
+  x.fillStyle = '#f4f3f0';
+  for (const l of lines) {
+    if (y > maxY) { x.fillStyle = '#9b9a96'; x.fillText('…', W / 2, y); break; }
+    x.fillText(l, W / 2, y);
+    y += size + 18;
+  }
+
+  // firma
+  x.fillStyle = '#9b9a96';
+  x.font = '700 26px Archivo, Helvetica, sans-serif';
+  x.fillText('venezia-cori.vercel.app', W / 2, H - 70);
+
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  if (!blob) throw new Error('canvas vuoto');
+  VeneziaAPI.track('share_image', { id: chant.id });
+
+  const file = new File([blob], `coro-${chant.id}.png`, { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: `${chant.titolo} · Venezia Cori` });
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  // fallback: scarica il file
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `coro-${chant.id}.png`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Immagine scaricata! Pronta per le storie 📸');
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   CORO DEL GIORNO — scelto in modo deterministico dalla data: stesso
+   coro per tutti, cambia ogni mezzanotte. Nascosto durante la ricerca.
+   ════════════════════════════════════════════════════════════════════ */
+const dailySection = document.getElementById('daily-section');
+let dailyChantId = null;
+
+function renderDaily() {
+  if (!dailySection || !chants.length) return;
+  const d = new Date();
+  const seed = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  let h = 0;
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const sorted = [...chants].sort((a, b) => a.id - b.id);
+  const chant = sorted[h % sorted.length];
+  dailyChantId = chant.id;
+
+  const allLines = chant.testo.split('\n');
+  const excerpt = allLines.slice(0, 3).join('\n') + (allLines.length > 3 ? '\n…' : '');
+  dailySection.innerHTML = `
+<div class="daily-card">
+  <span class="daily-label" id="daily-label">📣 Il coro del giorno</span>
+  <h2 class="daily-title">${escape(chant.titolo)}</h2>
+  <div class="daily-lyrics">${escape(excerpt)}</div>
+  <div class="daily-actions">
+    <button class="mini-btn" id="daily-stadium">🎤 Modalità stadio</button>
+    <button class="mini-btn" id="daily-share">↗ Condividi</button>
+  </div>
+</div>`;
+  document.getElementById('daily-stadium').addEventListener('click', () => openStadium(dailyChantId));
+  document.getElementById('daily-share').addEventListener('click', () => shareChant(dailyChantId));
+  updateDailyVisibility();
+}
+
+function updateDailyVisibility() {
+  if (!dailySection) return;
+  dailySection.hidden = !dailyChantId || activeFilter !== 'tutti' || !!searchQuery;
+}
+
+/* ── Deep link: #coro-<id> scrolla ed evidenzia il coro condiviso ── */
+function handleDeepLink() {
+  const m = location.hash.match(/^#coro-(\d+)$/);
+  if (!m) return;
+  const id = parseInt(m[1], 10);
+  if (!chants.some(c => c.id === id)) return;
+  let card = grid.querySelector(`.card[data-id="${id}"]`);
+  if (!card) { resetFilters(); card = grid.querySelector(`.card[data-id="${id}"]`); }
+  if (!card) return;
+  setTimeout(() => {
+    card.scrollIntoView({ behavior: prefersReduced() ? 'auto' : 'smooth', block: 'center' });
+    card.classList.add('linked');
+    setTimeout(() => card.classList.remove('linked'), 4200);
+  }, 120);
+}
+window.addEventListener('hashchange', handleDeepLink);
 
 /* ── Search (debounced) ── */
 const searchWrap = document.querySelector('.search-wrap');
@@ -571,6 +893,27 @@ async function loadMerch() {
   }
 }
 
+/* ── SEO: dati strutturati per Google (iniettati dopo il load) ── */
+function injectJsonLd() {
+  if (document.getElementById('jsonld') || !chants.length) return;
+  const s = document.createElement('script');
+  s.type = 'application/ld+json';
+  s.id = 'jsonld';
+  s.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Cori del Venezia FC',
+    description: 'I cori della curva arancioverde del Venezia FC',
+    numberOfItems: chants.length,
+    itemListElement: chants.slice(0, 25).map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: { '@type': 'MusicComposition', name: c.titolo, url: chantUrl(c.id), inLanguage: 'it' }
+    }))
+  });
+  document.head.appendChild(s);
+}
+
 /* ── Init ── */
 async function loadChants() {
   renderLoading();
@@ -579,6 +922,10 @@ async function loadChants() {
     MAX_SCORE = Math.max(1, ...chants.map(score));
     countUp(heroCount, chants.length);
     render();
+    renderDaily();
+    injectJsonLd();
+    handleDeepLink();
+    if (VeneziaAPI.fromCache) toast('Sei offline: ti mostro i cori salvati 📦');
   } catch (e) {
     console.error(e);
     renderError();
@@ -589,3 +936,12 @@ async function loadChants() {
 
 loadChants();
 loadMerch();
+VeneziaAPI.track('view', { ref: document.referrer ? new URL(document.referrer).hostname : null });
+
+/* ── PWA: service worker (solo in produzione, mai su localhost) ── */
+if ('serviceWorker' in navigator && location.protocol === 'https:' &&
+    location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* niente PWA, sito normale */ });
+  });
+}
