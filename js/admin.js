@@ -73,7 +73,7 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
-    ['chants','media','manage','merch'].forEach(name =>
+    ['chants','media','manage','merch','stats'].forEach(name =>
       show(document.getElementById(`panel-${name}`), name === tab.dataset.tab));
   });
 });
@@ -83,6 +83,7 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
    ════════════════════════════════════════════════════════════════════ */
 async function loadAll() {
   await Promise.all([loadPendingChants(), loadPendingMedia(), loadManage(), loadMerch()]);
+  loadStats();   // dopo loadManage: usa i titoli dei cori per le classifiche
 }
 
 /* ── Proposte cori ──────────────────────────────────────────────── */
@@ -539,6 +540,140 @@ function wireMerchRow(p) {
     try { await A.deleteMerch(p.id); toast('Prodotto eliminato.'); refresh(); }
     catch { toast('Operazione non riuscita.', 'err'); }
   });
+}
+
+/* ── Statistiche (tabella events, vedi db/migration-analytics.sql) ── */
+let statsDays = 30;
+
+const EVENT_LABELS = {
+  view: 'Visite', share: 'Condivisioni link', share_image: 'Immagini condivise',
+  stadium: 'Modalità stadio', proposal: 'Proposte coro', correction: 'Correzioni',
+  search_miss: 'Ricerche a vuoto'
+};
+
+async function loadStats() {
+  const panel = document.getElementById('panel-stats');
+  if (!panel) return;
+  panel.innerHTML = '<p class="muted">Carico…</p>';
+  let rows;
+  try {
+    rows = await A.events(statsDays);
+  } catch (e) {
+    const msg = String(e?.message || '');
+    const missing = e?.code === '42P01' || /relation .* does not exist|events.* not exist|schema cache/i.test(msg);
+    panel.innerHTML = missing
+      ? `<div class="stats-empty">
+           <h3>Analytics non ancora attive</h3>
+           <p class="muted">Manca la tabella <code>events</code>: esegui una volta
+           <code>db/migration-analytics.sql</code> nello SQL Editor di Supabase.
+           Da quel momento il sito registra visite, ricerche a vuoto, condivisioni
+           e modalità stadio — e li leggi qui, senza cookie e senza servizi esterni.</p>
+         </div>`
+      : '<p class="err-msg">Errore di caricamento statistiche.</p>';
+    return;
+  }
+  renderStats(panel, rows);
+}
+
+function renderStats(panel, rows) {
+  const count = t => rows.filter(r => r.tipo === t).length;
+  const kpis = [
+    { icon: '👀', label: 'Visite',            val: count('view') },
+    { icon: '↗',  label: 'Condivisioni',      val: count('share') + count('share_image') },
+    { icon: '🎤', label: 'Modalità stadio',   val: count('stadium') },
+    { icon: '📝', label: 'Proposte + correzioni', val: count('proposal') + count('correction') },
+    { icon: '🔍', label: 'Ricerche a vuoto',  val: count('search_miss') }
+  ];
+
+  /* visite per giorno (asse completo, anche i giorni a zero) */
+  const days = [];
+  for (let i = statsDays - 1; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    days.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+      label: d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
+      n: 0
+    });
+  }
+  const dayIdx = Object.fromEntries(days.map((d, i) => [d.key, i]));
+  rows.forEach(r => {
+    if (r.tipo !== 'view') return;
+    const k = String(r.created_at).slice(0, 10);
+    if (k in dayIdx) days[dayIdx[k]].n++;
+  });
+  const maxDay = Math.max(1, ...days.map(d => d.n));
+
+  /* ricerche senza risultati più frequenti → cori da aggiungere */
+  const misses = {};
+  rows.forEach(r => {
+    if (r.tipo !== 'search_miss') return;
+    const q = String(r.dati?.q || '').toLowerCase().trim();
+    if (q) misses[q] = (misses[q] || 0) + 1;
+  });
+  const topMiss = Object.entries(misses).sort((a, b) => b[1] - a[1]).slice(0, 15);
+
+  /* cori più usati (stadio + condivisioni) */
+  const byChant = {};
+  rows.forEach(r => {
+    if (!['stadium', 'share', 'share_image'].includes(r.tipo)) return;
+    const id = r.dati?.id;
+    if (id) byChant[id] = (byChant[id] || 0) + 1;
+  });
+  const titleOf = id => manageChants.find(c => c.id === Number(id))?.titolo || `coro #${id}`;
+  const topChants = Object.entries(byChant).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  /* dettaglio per tipo di evento */
+  const byType = Object.entries(EVENT_LABELS)
+    .map(([t, label]) => [label, count(t)])
+    .filter(([, n]) => n > 0);
+
+  panel.innerHTML = `
+<div class="stats-head">
+  <div class="seg-group">
+    ${[7, 30, 90].map(d => `<button class="seg-btn${d === statsDays ? ' active' : ''}" data-days="${d}">${d} giorni</button>`).join('')}
+  </div>
+  <span class="muted">${rows.length} eventi nel periodo${rows.length >= 10000 ? ' (limite raggiunto)' : ''}</span>
+</div>
+
+<div class="kpi-grid">
+  ${kpis.map(k => `
+  <div class="kpi">
+    <span class="kpi-val">${k.val}</span>
+    <span class="kpi-label"><span aria-hidden="true">${k.icon}</span> ${k.label}</span>
+  </div>`).join('')}
+</div>
+
+<div class="stats-block">
+  <h3 class="stats-title">Visite per giorno</h3>
+  <div class="bars">
+    ${days.map(d => `<div class="bar-wrap" title="${d.label}: ${d.n} visite"><div class="bar" style="height:${Math.max(2, Math.round(d.n / maxDay * 100))}%"></div></div>`).join('')}
+  </div>
+  <div class="bars-x"><span>${days[0].label}</span><span>oggi</span></div>
+</div>
+
+<div class="stats-cols">
+  <div class="stats-block">
+    <h3 class="stats-title">Ricerche senza risultati <span class="stats-hint">= cori che mancano</span></h3>
+    ${topMiss.length
+      ? `<ol class="stats-list">${topMiss.map(([q, n]) => `<li><span class="sl-q">«${esc(q)}»</span><span class="sl-n">${n}</span></li>`).join('')}</ol>`
+      : '<p class="muted">Nessuna nel periodo. 🎉</p>'}
+  </div>
+  <div class="stats-block">
+    <h3 class="stats-title">Cori più cantati / condivisi</h3>
+    ${topChants.length
+      ? `<ol class="stats-list">${topChants.map(([id, n]) => `<li><span class="sl-q">${esc(titleOf(id))}</span><span class="sl-n">${n}</span></li>`).join('')}</ol>`
+      : '<p class="muted">Ancora nessun dato.</p>'}
+  </div>
+  <div class="stats-block">
+    <h3 class="stats-title">Tutti gli eventi</h3>
+    ${byType.length
+      ? `<ol class="stats-list">${byType.map(([label, n]) => `<li><span class="sl-q">${label}</span><span class="sl-n">${n}</span></li>`).join('')}</ol>`
+      : '<p class="muted">Ancora nessun evento registrato.</p>'}
+  </div>
+</div>`;
+
+  panel.querySelectorAll('[data-days]').forEach(b =>
+    b.addEventListener('click', () => { statsDays = parseInt(b.dataset.days, 10); loadStats(); }));
 }
 
 /* ── Refresh debounced ── */

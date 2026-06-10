@@ -176,6 +176,19 @@ const VeneziaAPI = (() => {
         if (error) throw error;
       },
 
+      /* ── ANALYTICS ── */
+      // Eventi degli ultimi N giorni (richiede db/migration-analytics.sql).
+      async events(days = 30) {
+        const since = new Date(Date.now() - days * 864e5).toISOString();
+        const { data, error } = await sb.from('events')
+          .select('tipo,dati,created_at')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(10000);
+        if (error) throw error;
+        return data || [];
+      },
+
       /* ── MERCH ── */
       async allMerch() {
         const { data, error } = await sb.from('merch').select('*').order('ordine');
