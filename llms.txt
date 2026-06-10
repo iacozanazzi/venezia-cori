@@ -1,0 +1,32 @@
+# Venezia Cori
+
+> Archivio dei cori del Venezia FC (l'Unione, arancioneroverde): testi completi dei cori della curva, cercabili e filtrabili. Progetto amatoriale dei tifosi, senza pubblicità invasiva.
+
+Il sito raccoglie i cori cantati dalla tifoseria del Venezia FC con il testo integrale, suddivisi in: classici, da curva, di incoraggiamento, sfottò e da derby. Ogni coro ha una pagina dedicata con il testo e, dove disponibile, i link ai video.
+
+## Cori
+- [Alé Alé Alé UNIONE](https://venezia-cori.vercel.app/coro/ale-ale-ale-unione): coro di incoraggiamento della curva del Venezia FC.
+- [Armata Arancio Verde](https://venezia-cori.vercel.app/coro/armata-arancio-verde): coro da curva della curva del Venezia FC.
+- [Che Bello È (La Domenica)](https://venezia-cori.vercel.app/coro/che-bello-e-la-domenica): coro storico della curva del Venezia FC.
+- [Che Bello Uscire di Casa](https://venezia-cori.vercel.app/coro/che-bello-uscire-di-casa): coro di incoraggiamento della curva del Venezia FC.
+- [Che Ne Sai](https://venezia-cori.vercel.app/coro/che-ne-sai): coro storico della curva del Venezia FC.
+- [Ci Accoltellano](https://venezia-cori.vercel.app/coro/ci-accoltellano): coro da curva della curva del Venezia FC.
+- [Forza Unione Alé](https://venezia-cori.vercel.app/coro/forza-unione-ale): coro di incoraggiamento della curva del Venezia FC.
+- [HO PRESO LA DIFFIDA](https://venezia-cori.vercel.app/coro/ho-preso-la-diffida): coro da curva della curva del Venezia FC.
+- [Il Veneto Siamo Noi](https://venezia-cori.vercel.app/coro/il-veneto-siamo-noi): coro di sfottò della curva del Venezia FC.
+- [IN OGNI STADIO SIAMO AL TUO FIANCO](https://venezia-cori.vercel.app/coro/in-ogni-stadio-siamo-al-tuo-fianco): coro di incoraggiamento della curva del Venezia FC.
+- [L'Etna](https://venezia-cori.vercel.app/coro/l-etna): coro di sfottò della curva del Venezia FC, contro il Palermo.
+- [L'Unione / O Padovano](https://venezia-cori.vercel.app/coro/l-unione-o-padovano): coro da derby della curva del Venezia FC, contro il Padova.
+- [La Curva Sud Ti Ama](https://venezia-cori.vercel.app/coro/la-curva-sud-ti-ama): coro da curva della curva del Venezia FC.
+- [La Nostra Passione](https://venezia-cori.vercel.app/coro/la-nostra-passione): coro storico della curva del Venezia FC.
+- [Noi Siamo il Venezia-Mestre](https://venezia-cori.vercel.app/coro/noi-siamo-il-venezia-mestre): coro di incoraggiamento della curva del Venezia FC.
+- [O Padovano Devi Vendere](https://venezia-cori.vercel.app/coro/o-padovano-devi-vendere): coro da derby della curva del Venezia FC, contro il Padova.
+- [Per Ogni Diffidato](https://venezia-cori.vercel.app/coro/per-ogni-diffidato): coro da curva della curva del Venezia FC.
+- [SE LA DOMENICA LA PASSO CON TE](https://venezia-cori.vercel.app/coro/se-la-domenica-la-passo-con-te): coro storico della curva del Venezia FC.
+- [Siamo i Leoni Arancioverdi](https://venezia-cori.vercel.app/coro/siamo-i-leoni-arancioverdi): coro storico della curva del Venezia FC.
+- [Siamo l'Armata Arancioverde](https://venezia-cori.vercel.app/coro/siamo-l-armata-arancioverde): coro da curva della curva del Venezia FC.
+- [Un Padovano in Croce](https://venezia-cori.vercel.app/coro/un-padovano-in-croce): coro da derby della curva del Venezia FC, contro il Padova.
+
+## Pagine principali
+- [Tutti i cori](https://venezia-cori.vercel.app/cori): indice completo con i testi.
+- [Home interattiva](https://venezia-cori.vercel.app/): ricerca, filtri, preferiti e modalità stadio.

@@ -118,6 +118,32 @@ Poi, nella tab **Gestione** di `/admin.html` puoi:
 
 ---
 
+## 10b. SEO / GEO — pagine statiche dei cori (per Google e le AI)
+
+La home è un'app JavaScript: i crawler che **non eseguono JS** (parte di Googlebot e
+soprattutto GPTBot, ClaudeBot, PerplexityBot…) non vedrebbero i testi. Per questo c'è
+uno script che genera, accanto all'app, **una pagina statica per ogni coro**
+(`/coro/<slug>`) più un indice (`/cori`), con testo completo, `title`/`meta` dedicati e
+dati strutturati JSON-LD. Aggiorna anche `sitemap.xml` e `llms.txt`.
+
+Quando aggiungi/modifichi cori dall'admin, **rigenera e ripubblica**:
+
+```sh
+node scripts/generate.mjs   # legge i cori da Supabase e riscrive /coro, /cori, sitemap.xml, llms.txt
+git add -A && git commit -m "Aggiorna pagine cori" && git push
+```
+
+> Lo script usa solo Node (≥18, nessuna dipendenza) e legge URL+chiave da
+> `js/supabase-config.js`. Se Supabase non risponde non tocca nulla, così non rompe il deploy.
+> Le pagine sono già committate: finché non aggiungi cori nuovi non devi rifare niente.
+> (Volendo si può automatizzare a ogni deploy con una Build Command su Vercel:
+> `node scripts/generate.mjs` — opzionale, vedi note nello script.)
+
+Dopo il deploy, invia la sitemap a **Google Search Console** (Sitemaps → `sitemap.xml`):
+è il modo più rapido per far indicizzare tutte le pagine dei cori.
+
+---
+
 ## 10. (Opzionale) Anti-spam più forte — Cloudflare Turnstile
 
 I form hanno già un **honeypot** (campo trappola invisibile) e tutto passa per moderazione,

@@ -1,0 +1,153 @@
+/* ════════════════════════════════════════════════════════════════════
+   Pagine statiche SEO/GEO (singolo coro + indice /cori).
+   Estende css/style.css: riusa variabili, header, badge, footer, toast.
+   Pensate come pagina d'atterraggio da Google/AI → poi click nell'app.
+   ════════════════════════════════════════════════════════════════════ */
+
+.page-nav {
+  margin-left: auto;
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-ctrl);
+  padding: 8px 14px;
+  transition: all 0.2s var(--ease);
+}
+.page-nav:hover { border-color: var(--orange); color: var(--orange); }
+
+.page-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(1.6rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem) 4rem;
+}
+
+.crumbs {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  margin-bottom: 1.4rem;
+  letter-spacing: 0.02em;
+}
+.crumbs a { color: var(--text-dim); text-decoration: none; }
+.crumbs a:hover { color: var(--orange); }
+.crumbs span { color: var(--text-dim); }
+
+/* ── Card coro ── */
+.page-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--r-card);
+  padding: clamp(20px, 4vw, 34px);
+}
+.page-card[data-cat="classico"]        { border-left-color: var(--cat-classico); }
+.page-card[data-cat="curva"]           { border-left-color: var(--cat-curva); }
+.page-card[data-cat="incoraggiamento"] { border-left-color: var(--cat-incoraggiamento); }
+.page-card[data-cat="sfotto"]          { border-left-color: var(--cat-sfotto); }
+.page-card[data-cat="derby"]           { border-left-color: var(--cat-derby); }
+
+.page-badges { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.page-title {
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  font-size: clamp(2rem, 6vw, 3.1rem);
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.page-context {
+  color: var(--text-dim);
+  font-size: 0.96rem;
+  line-height: 1.6;
+  margin: 0.9rem 0 1.6rem;
+}
+.page-context a { color: var(--orange); text-decoration: none; }
+.page-context a:hover { text-decoration: underline; }
+
+.page-lyrics {
+  white-space: pre-line;
+  font-size: clamp(1.05rem, 2.5vw, 1.22rem);
+  line-height: 1.85;
+  color: var(--text);
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.page-media { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.3rem; }
+
+.page-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 1.7rem;
+}
+.cta-primary, .cta-ghost {
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  border-radius: var(--r-ctrl);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.cta-primary { background: var(--orange); border: 1px solid var(--orange); color: #120a02; }
+.cta-primary:hover { background: var(--orange-deep); }
+.cta-ghost { background: none; border: 1px solid var(--border-strong); color: var(--text-dim); }
+.cta-ghost:hover { border-color: var(--orange); color: var(--orange); }
+
+.page-foot-note {
+  margin-top: 1.6rem;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+/* ── Indice /cori ── */
+.cori-sec { margin-top: 2.2rem; }
+.cori-sec-title {
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  font-size: 1.3rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--orange);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.cori-list { list-style: none; }
+.cori-list li { border-bottom: 1px solid var(--border); }
+.cori-list a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 13px 4px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 1.02rem;
+  transition: color 0.2s, padding 0.2s var(--ease);
+}
+.cori-list a:hover { color: var(--orange); padding-left: 10px; }
+.cori-vs {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
